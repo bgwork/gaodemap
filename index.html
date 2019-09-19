@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>高速分布图</title>
+    <style type="text/css">
+    html,
+    body,
+    #container {
+      width: 100%;
+      height: 100%;
+    }
+    label {
+            width: 55px;
+            height: 26px;
+            line-height: 26px;
+            margin-bottom: 0;
+    }
+    button.btn {
+            width: 80px;
+    }
+    </style>
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+	<script src="roadlist.js"></script>
+    <script src="https://a.amap.com/jsapi_demos/static/demo-center/js/demoutils.js"></script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.13&key=4b309d62d69c6e0c8a4e4078a6493a83&plugin=AMap.Driving"></script>
+	<script type="text/javascript" src="https://cache.amap.com/lbs/static/addToolbar.js"></script>
+
+<script type="text/javascript">
+function setFun(){
+//var id=new Array(1,2,3,4,5);
+//var value=new Array("北京","深圳","广州","杭州","西安");
+//通过DOM树取得下拉列表框元素
+var select=document.getElementById("area");
+select.length=1;//设置每次只能选择一个
+select.options[0].selected=true;//设置第一个为默认选中
+for(var x=0;x<roadlist.length;x++){
+//设置option中的内容,建立option节点
+var option=document.createElement("option");
+var num = x + 1;
+option.setAttribute("value",num);//设置option的属性值
+option.setAttribute("id","road"+num);
+//在option元素下增加文本节点
+option.appendChild(document.createTextNode(roadlist[x].highway));
+select.appendChild(option);//在select中增加option节点
+}
+}
+</script>
+
+
+</head>
+<body onload="setFun()">
+<script type="text/javascript">
+		        function getIndex()
+        {
+            var x=document.getElementById("area");
+            //console.log(x.selectedIndex);
+			//逗号分离起始点经纬度
+		var s_p = roadlist[x.selectedIndex-1].start_p.split(',');
+		var e_p = roadlist[x.selectedIndex-1].end_p.split(',');
+	    // 根据起终点经纬度规划驾车导航路线
+		drivingSingle.search(new AMap.LngLat(s_p[0],s_p[1]), new AMap.LngLat(e_p[0],e_p[1]));
+         }
+</script>
+<form action="" method="post">
+<select name="area" id="area">
+<option value="0" selected>==没有地区==</option>
+</select>
+</form>
+<input type="button" onclick="getIndex()"
+        value="定位路段" />
+<div id="container"></div>
+<div class="input-card" style="width:24rem;">
+    <h4>显示、隐藏高速起始点</h4>
+    <div class="input-item">
+      <label>Marker：</label>
+      <button class="btn" id="add-marker" style="margin-right:1rem;">显示起始点</button>
+      <button class="btn" id="remove-marker">隐藏起始点</button>
+    </div>
+	<div class="input-item">
+      <label>高速：</label>
+      <button class="btn" id="choose-road" onclick="getIndex()" style="margin-right:1rem;">显示高速</button>
+      <button class="btn" id="remove-road">隐藏高速</button>
+    </div>
+</div>
+<script type="text/javascript">
+    //基本地图加载
+    var map = new AMap.Map("container", {
+        resizeEnable: true,
+        center: [113.257634,23.148225],//地图中心点
+        zoom: 13, //地图显示的缩放级别
+		mapStyle:'amap://styles/e3d0244f2594032e419d266c83549d93'
+    });
+	var drivingArr
+	//循环获取js中所有路线、路线起始点
+	for (var i = 0; i < roadlist.length; i += 1) {
+		//构造路线导航类
+		var driving = new AMap.Driving({
+			map: map,
+			hideMarkers:true,
+			showTraffic:false
+			//panel显示文字导航
+			//panel: "panel"
+		}); 
+		//逗号分离起始点经纬度
+		var s_p = roadlist[i].start_p.split(',');
+		var e_p = roadlist[i].end_p.split(',');
+	    // 根据起终点经纬度规划驾车导航路线
+		driving.search(new AMap.LngLat(s_p[0],s_p[1]), new AMap.LngLat(e_p[0],e_p[1]));
+		//添加起始点标记
+		var marker1 = new AMap.Marker({
+			//icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_c.png",
+			icon: "sp.png",
+			position: [s_p[0],s_p[1]]
+		});
+		var marker2 = new AMap.Marker({
+			icon: "ep.png",
+			position: [e_p[0],e_p[1]]
+		});
+		var markerList = [marker1, marker2];
+		map.add(markerList);
+		marker1.setLabel({
+		        offset: new AMap.Pixel(15, 15),
+		        content: roadlist[i].highway+"起点"
+		    });
+		marker2.setLabel({
+		        offset: new AMap.Pixel(15, 15),
+		        content: roadlist[i].highway+"终点"
+		    });
+
+    /*创建纯文本标记
+    var text = new AMap.Text({
+        text:roadlist[i].highway,
+        anchor:'center', // 设置文本标记锚点
+        draggable:true,
+        cursor:'pointer',
+        //angle:10,
+        style:{
+            //'padding': '.75rem 1.25rem',
+            //'margin-bottom': '1rem',
+            //'border-radius': '.25rem',
+            'background-color': 'transparent',
+            'width': '10rem',
+            //'border-width': 0,
+            //'box-shadow': '0 2px 6px 0 rgba(114, 124, 245, .5)',
+            'text-align': 'center',
+            'font-size': '10px',
+            'color': 'black'
+        },
+        position: [s_p[0],s_p[1]]
+    });
+
+    text.setMap(map);
+	*/
+
+
+	}
+	//获取全部marker点
+	var markerAll = map.getAllOverlays('marker');
+
+//事件绑定
+//添加所有marker点
+document.querySelector("#add-marker").onclick = function() {
+	map.add(markerAll);
+	map.setFitView();
+}
+//删除所有marker点
+document.querySelector("#remove-marker").onclick = function() {
+    map.remove(markerAll);
+    map.setFitView();
+}
+
+var drivingSingle = new AMap.Driving({
+			map: map,
+			hideMarkers:false,
+			showTraffic:false,
+			outlineColor:'black'
+		}); 
+
+//取消高亮单条高速
+document.querySelector("#remove-road").onclick = function() {
+	drivingSingle.clear();
+}
+</script>
+</body>
+</html>
